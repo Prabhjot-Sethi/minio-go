@@ -288,12 +288,6 @@ func IsSignatureV4Valid(req http.Request, accessKeyID, secretAccessKey, sessionT
 	// Get hmac signing key.
 	signingKey := getSigningKey(secretAccessKey, location, t, serviceType)
 
-	// Get credential string.
-	credential := GetCredential(accessKeyID, location, t, serviceType)
-
-	// Get all signed headers.
-	signedHeaders := getSignedHeaders(req, v4IgnoredHeaders)
-
 	// Calculate signature.
 	signature := getSignature(signingKey, stringToSign)
 
