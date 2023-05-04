@@ -266,6 +266,49 @@ func SignV4STS(req http.Request, accessKeyID, secretAccessKey, location string) 
 	return signV4(req, accessKeyID, secretAccessKey, "", location, ServiceTypeSTS, nil)
 }
 
+func IsSignatureV4Valid(req http.Request, accessKeyID, secretAccessKey, sessionToken, location, serviceType string) bool {
+	timeStr := req.Header.Get("X-Amz-Date")
+	if timeStr == "" {
+		return false
+	}
+
+	t, err := time.Parse(iso8601DateFormat, timeStr)
+	if err != nil {
+		return false
+	}
+
+	hashedPayload := getHashedPayload(req)
+
+	// Get canonical request.
+	canonicalRequest := getCanonicalRequest(req, v4IgnoredHeaders, hashedPayload)
+
+	// Get string to sign from canonical request.
+	stringToSign := getStringToSignV4(t, location, canonicalRequest, serviceType)
+
+	// Get hmac signing key.
+	signingKey := getSigningKey(secretAccessKey, location, t, serviceType)
+
+	// Get credential string.
+	credential := GetCredential(accessKeyID, location, t, serviceType)
+
+	// Get all signed headers.
+	signedHeaders := getSignedHeaders(req, v4IgnoredHeaders)
+
+	// Calculate signature.
+	signature := getSignature(signingKey, stringToSign)
+
+	auth := req.Header.Get("Authorization")
+	parts := strings.Split(auth, ", ")
+	for _, v := range parts {
+		if strings.HasPrefix(v, "Signature=") {
+			if signature == strings.TrimPrefix(v, "Signature=") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Internal function called for different service types.
 func signV4(req http.Request, accessKeyID, secretAccessKey, sessionToken, location, serviceType string, trailer http.Header) *http.Request {
 	// Signature calculation is not needed for anonymous credentials.
