@@ -62,6 +62,13 @@ var v4IgnoredHeaders = map[string]bool{
 	"User-Agent":      true,
 }
 
+var v4IgnoredVerifyHeaders = map[string]bool{
+	"Accept-Encoding": true,
+	"Authorization":   true,
+	"User-Agent":      true,
+	"Expect":          true,
+}
+
 // getSigningKey hmac seed to calculate final signature.
 func getSigningKey(secret, loc string, t time.Time, serviceType string) []byte {
 	date := sumHMAC([]byte("AWS4"+secret), []byte(t.Format(yyyymmdd)))
@@ -280,7 +287,7 @@ func IsSignatureV4Valid(req http.Request, accessKeyID, secretAccessKey, sessionT
 	hashedPayload := getHashedPayload(req)
 
 	// Get canonical request.
-	canonicalRequest := getCanonicalRequest(req, v4IgnoredHeaders, hashedPayload)
+	canonicalRequest := getCanonicalRequest(req, v4IgnoredVerifyHeaders, hashedPayload)
 
 	// Get string to sign from canonical request.
 	stringToSign := getStringToSignV4(t, location, canonicalRequest, serviceType)
